@@ -1,4 +1,4 @@
-# SamBookrec
+# AI_BookRecommendationSystem_MRISN
 
 # AI-Assisted Book Recommender
 
