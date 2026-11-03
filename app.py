@@ -1,7 +1,6 @@
 
 import pandas as pd
-import numpy as np
-import faiss
+import chromadb
 
 from sentence_transformers import SentenceTransformer
 
@@ -30,64 +29,47 @@ def generate_embeddings(books):
 
     descriptions = books["content"].tolist()
 
-    embeddings = model.encode(
-        descriptions,
-        convert_to_numpy=True
+    return model.encode(descriptions, convert_to_numpy=True)
+
+
+# 4. Create ChromaDB collection
+def create_chroma_collection(embeddings):
+
+    client = chromadb.Client()
+    collection = client.create_collection(
+        name="books",
+        metadata={"hnsw:space": "cosine"}
+    )
+    collection.add(
+        ids=[str(index) for index in range(len(embeddings))],
+        embeddings=embeddings.tolist()
     )
 
-    embeddings = embeddings.astype("float32")
-
-    # Normalize for cosine similarity
-    faiss.normalize_L2(embeddings)
-
-    return embeddings
-
-
-# 4. Create FAISS index
-def create_faiss_index(embeddings):
-
-    dimension = embeddings.shape[1]
-
-    index = faiss.IndexFlatIP(dimension)
-
-    index.add(embeddings)
-
-    return index
+    return collection
 
 
 # 5. Search books semantically
-def search_books(query, books, index, top_k=5):
+def search_books(query, books, collection, top_k=5):
 
     # Generate query embedding
-    query_embedding = model.encode(
-        [query],
-        convert_to_numpy=True
-    )
-
-    query_embedding = query_embedding.astype("float32")
-
-    faiss.normalize_L2(query_embedding)
+    query_embedding = model.encode([query], convert_to_numpy=True)
 
     # Perform similarity search
-    scores, indices = index.search(
-        query_embedding,
-        min(top_k, len(books))
+    matches = collection.query(
+        query_embeddings=query_embedding.tolist(),
+        n_results=min(top_k, len(books))
     )
 
     results = []
 
-    for score, idx in zip(scores[0], indices[0]):
-
-        if idx == -1:
-            continue
-
-        book = books.iloc[idx]
+    for book_id, distance in zip(matches["ids"][0], matches["distances"][0]):
+        book = books.iloc[int(book_id)]
 
         results.append({
             "title": book["title"],
             "author": book["author"],
             "description": book["description"],
-            "similarity": round(float(score), 3)
+            "similarity": round(1 - float(distance), 3)
         })
 
     return results
@@ -115,7 +97,7 @@ def main():
 
     embeddings = generate_embeddings(books)
 
-    index = create_faiss_index(embeddings)
+    collection = create_chroma_collection(embeddings)
 
     print("AI Book Recommender")
     print("-------------------")
@@ -133,7 +115,7 @@ def main():
         results = search_books(
             query,
             books,
-            index,
+            collection,
             top_k=2
         )
 

@@ -4,14 +4,14 @@
 
 A simple Python-based semantic search application that recommends books based on the meaning and context of a user's query rather than relying on keyword matching.
 
-The application uses Sentence Transformers to generate text embeddings and FAISS to find semantically similar books.
+The application uses Sentence Transformers to generate text embeddings and ChromaDB to find semantically similar books.
 
 ## Features
 
 - Semantic search based on natural language queries.
 - Book recommendations using vector similarity.
 - Sentence Transformers for text embeddings.
-- FAISS for efficient similarity search.
+- ChromaDB for vector similarity search.
 - CSV-based book dataset.
 - Function-based Python implementation (no classes).
 
@@ -21,9 +21,8 @@ The application uses Sentence Transformers to generate text embeddings and FAISS
 |---|---|
 | Python | Programming language |
 | Pandas | Dataset management |
-| NumPy | Numerical operations |
 | Sentence Transformers | Generate text embeddings |
-| FAISS | Vector similarity search |
+| ChromaDB | Vector similarity search |
 
 ## Project Structure
 
@@ -83,9 +82,8 @@ Create a `requirements.txt` file:
 
 ```text
 pandas
-numpy
 sentence-transformers
-faiss-cpu
+chromadb
 ```
 
 ## Dataset
@@ -135,17 +133,16 @@ all-MiniLM-L6-v2
 
 Each book is represented by a 384-dimensional vector.
 
-### 3. Create FAISS Index
+### 3. Create ChromaDB Collection
+The `create_chroma_collection()` function creates a ChromaDB collection and stores the book embeddings.
 
-The `create_faiss_index()` function creates a FAISS index and stores the book embeddings.
-
-It uses:
+The collection uses cosine distance:
 
 ```python
-faiss.IndexFlatIP()
+metadata={"hnsw:space": "cosine"}
 ```
 
-Vectors are normalized before indexing, allowing inner product search to calculate cosine similarity.
+ChromaDB ranks books by cosine distance. The application converts each distance to a cosine similarity score for display.
 
 ### 4. Semantic Search
 
@@ -153,7 +150,7 @@ The `search_books()` function:
 
 - Accepts a natural language query.
 - Converts the query into an embedding.
-- Searches the FAISS index.
+- Searches the ChromaDB collection.
 - Retrieves the most similar books.
 - Returns ranked recommendations with similarity scores.
 
@@ -202,7 +199,7 @@ Recommended Books:
            Query Embedding
                   |
                   v
-            FAISS Search
+          ChromaDB Search
                   |
                   v
           Similarity Ranking
@@ -220,7 +217,7 @@ Recommended Books:
 |---|---|
 | `load_books()` | Load book dataset |
 | `generate_embeddings()` | Generate book embeddings |
-| `create_faiss_index()` | Create vector index |
+| `create_chroma_collection()` | Create vector collection |
 | `search_books()` | Perform semantic search |
 | `display_recommendations()` | Display recommendations |
 | `main()` | Application entry point |
@@ -230,7 +227,7 @@ Recommended Books:
 - Integrate an LLM to explain recommendations.
 - Add personalized recommendations based on reading history.
 - Introduce genre and author filters.
-- Store embeddings and FAISS indexes on disk.
+- Persist ChromaDB collections on disk.
 - Replace CSV with a database.
 - Build a Streamlit-based web interface.
 - Add user ratings and feedback.
